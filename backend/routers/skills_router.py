@@ -1,17 +1,15 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
 import models
 import schemas
 from database import get_db
 from dependencies import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/skills", tags=["Skills"])
 
 
-@router.get("/", response_model=List[schemas.SkillResponse])
+@router.get("/", response_model=list[schemas.SkillResponse])
 def list_skills(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -67,4 +65,3 @@ def delete_skill(
     skill = _get_owned_skill(skill_id, db, current_user)
     db.delete(skill)
     db.commit()
-    return None

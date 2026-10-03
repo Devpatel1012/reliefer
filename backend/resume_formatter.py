@@ -2,7 +2,6 @@
 """
 
 import re
-from typing import List, Tuple, Optional
 
 
 def _clean_bullet_text(text: str) -> str:
@@ -58,7 +57,7 @@ def _split_raw_into_sections(raw: str) -> dict:
     return {k: '\n'.join(v).strip() for k, v in sections.items()}
 
 
-def _parse_name_contact(header_block: str) -> Tuple[str, str]:
+def _parse_name_contact(header_block: str) -> tuple[str, str]:
     name = ''
     contact = ''
     for line in header_block.splitlines():
@@ -73,9 +72,9 @@ def _parse_name_contact(header_block: str) -> Tuple[str, str]:
     return name, contact
 
 
-def _parse_experience_entries(block: str) -> List[dict]:
+def _parse_experience_entries(block: str) -> list[dict]:
     entries = []
-    current: Optional[dict] = None
+    current: dict | None = None
     for line in block.splitlines():
         stripped = line.strip()
         if not stripped:
@@ -105,9 +104,9 @@ def _parse_experience_entries(block: str) -> List[dict]:
     return entries
 
 
-def _parse_project_entries(block: str) -> List[dict]:
+def _parse_project_entries(block: str) -> list[dict]:
     entries = []
-    current: Optional[dict] = None
+    current: dict | None = None
     for line in block.splitlines():
         stripped = line.strip()
         if not stripped:
@@ -150,7 +149,7 @@ def _parse_project_entries(block: str) -> List[dict]:
     return entries
 
 
-def _parse_skill_lines(block: str) -> List[str]:
+def _parse_skill_lines(block: str) -> list[str]:
     lines = []
     for line in block.splitlines():
         stripped = line.strip()
@@ -161,7 +160,7 @@ def _parse_skill_lines(block: str) -> List[str]:
     return lines
 
 
-def _parse_achievements(block: str) -> List[str]:
+def _parse_achievements(block: str) -> list[str]:
     items = []
     for line in block.splitlines():
         stripped = line.strip()
@@ -172,7 +171,7 @@ def _parse_achievements(block: str) -> List[str]:
     return items
 
 
-def _parse_education_lines(block: str) -> List[str]:
+def _parse_education_lines(block: str) -> list[str]:
     lines = []
     for line in block.splitlines():
         stripped = line.strip()

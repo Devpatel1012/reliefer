@@ -1,10 +1,9 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-
 import models
 from database import get_db
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from security import decode_access_token
+from sqlalchemy.orm import Session
 
 # tokenUrl points at the login endpoint that issues the token (docs/testing only)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")

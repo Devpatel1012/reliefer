@@ -1,8 +1,6 @@
-import sys
-import os
 
-from database import SessionLocal
 import models
+from database import SessionLocal
 
 db = SessionLocal()
 user = db.query(models.User).first()

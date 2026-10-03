@@ -1,7 +1,7 @@
 import io
-import re
 import logging
-from typing import Dict, Any, List, Optional
+import re
+from typing import Any
 
 logger = logging.getLogger("reliefer.resume_parser")
 
@@ -64,7 +64,7 @@ def extract_text(file_bytes: bytes, filename: str) -> str:
     fn_lower = filename.lower()
     if fn_lower.endswith(".pdf"):
         return extract_text_from_pdf(file_bytes)
-    elif fn_lower.endswith(".docx") or fn_lower.endswith(".doc"):
+    elif fn_lower.endswith((".docx", ".doc")):
         return extract_text_from_docx(file_bytes)
     else:
         try:
@@ -80,33 +80,33 @@ SECTION_HEADER_PATTERNS = {
         r"^(technical\s+skills?|skills?|technologies|expertise|core\s+competencies|"
         r"tools?\s*(&|and|\+)\s*technologies|programming\s+languages?|competencies|"
         r"languages?\s*&?\s*tools?|tech\s+stack)",
-        re.I
+        re.IGNORECASE
     ),
     "experience": re.compile(
         r"^(work\s+experience|professional\s+experience|experience|"
         r"employment(\s+history)?|work\s+history|career(\s+history)?|internships?)",
-        re.I
+        re.IGNORECASE
     ),
     "education": re.compile(
         r"^(education(al)?\s*(background|qualifications?)?|academic(\s+background)?|"
         r"qualifications?|degrees?|schooling|training)",
-        re.I
+        re.IGNORECASE
     ),
     "projects": re.compile(
         r"^(projects?|personal\s+projects?|key\s+projects?|academic\s+projects?|"
         r"side\s+projects?|portfolio|notable\s+projects?|selected\s+projects?)",
-        re.I
+        re.IGNORECASE
     ),
     "achievements": re.compile(
         r"^(achievements?|awards?|honors?|certifications?|accomplishments?|"
         r"publications?|research\s+publications?|certifications?\s*(&|and|\+)\s*achievements?|"
         r"awards?\s*(&|and|\+)\s*certifications?)",
-        re.I
+        re.IGNORECASE
     ),
     "other": re.compile(
         r"^(summary|professional\s+summary|profile|about(\s+me)?|"
         r"additional\s+info(rmation)?|interests?|extracurriculars?)",
-        re.I
+        re.IGNORECASE
     ),
 }
 
@@ -129,14 +129,14 @@ ROLE_KEYWORDS_RE = re.compile(
     r"\b(engineer|developer|analyst|manager|intern|lead|architect|"
     r"scientist|designer|consultant|specialist|director|officer|"
     r"associate|assistant|coordinator|researcher|student|fellow)\b",
-    re.I
+    re.IGNORECASE
 )
 
 DATE_PATTERN_RE = re.compile(
     r"((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{4}|\b(19|20)\d{2}\b)"
     r"\s*[\-–—to\s]+\s*"
     r"((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{4}|\b(19|20)\d{2}\b|present|expected|current)",
-    re.I
+    re.IGNORECASE
 )
 
 
@@ -146,8 +146,8 @@ def _clean_text(s: str) -> str:
     return s.strip()
 
 
-def _split_into_sections(lines: List[str]) -> Dict[str, List[str]]:
-    sections: Dict[str, List[str]] = {
+def _split_into_sections(lines: list[str]) -> dict[str, list[str]]:
+    sections: dict[str, list[str]] = {
         "header": [],
         "skills": [],
         "experience": [],
@@ -180,7 +180,7 @@ def _split_into_sections(lines: List[str]) -> Dict[str, List[str]]:
     return sections
 
 
-def _parse_skills(sections: Dict[str, List[str]], raw_text: str) -> List[str]:
+def _parse_skills(sections: dict[str, list[str]], raw_text: str) -> list[str]:
     skills_list = []
     CATEGORY_PREFIX_RE = re.compile(
         r"^(languages?|frameworks?|libraries|tools?|technologies|cloud|databases?|"
@@ -188,7 +188,7 @@ def _parse_skills(sections: Dict[str, List[str]], raw_text: str) -> List[str]:
         r"programming|scripting|ide|devops|ml\s*/\s*ai|ai\s*/?\s*ml|"
         r"web|mobile|os|operating\s+systems?|version\s+control|testing|"
         r"coursework|relevant\s+skills?|tech\s+stack|technical\s+expertise|interests)\s*[:\-]?\s*",
-        re.I
+        re.IGNORECASE
     )
 
     skill_lines = sections.get("skills", [])
@@ -223,7 +223,7 @@ def _parse_skills(sections: Dict[str, List[str]], raw_text: str) -> List[str]:
     return deduped[:30]
 
 
-def _parse_experience(exp_lines: List[str]) -> List[Dict[str, Any]]:
+def _parse_experience(exp_lines: list[str]) -> list[dict[str, Any]]:
     blocks = []
     curr = []
     for line in exp_lines:
@@ -231,7 +231,7 @@ def _parse_experience(exp_lines: List[str]) -> List[Dict[str, Any]]:
         if not line_s:
             continue
         is_bullet = bool(re.match(r"^[•\-\*►▪▸◦◉●]\s*", line_s))
-        has_date = bool(re.search(r"\b(19|20)\d{2}\b|(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{4}|Present|Current", line_s, re.I))
+        has_date = bool(re.search(r"\b(19|20)\d{2}\b|(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{4}|Present|Current", line_s, re.IGNORECASE))
         has_role = bool(ROLE_KEYWORDS_RE.search(line_s))
 
         if not is_bullet and (has_date or has_role) and len(curr) > 0:
@@ -264,7 +264,7 @@ def _parse_experience(exp_lines: List[str]) -> List[Dict[str, Any]]:
         for h in headers:
             h_no_date = DATE_PATTERN_RE.sub("", h)
             h_clean = _clean_text(h_no_date)
-            h_clean = re.sub(r"\b(Remote|Ahmedabad|Hybrid|On-site)\b", "", h_clean, flags=re.I).strip()
+            h_clean = re.sub(r"\b(Remote|Ahmedabad|Hybrid|On-site)\b", "", h_clean, flags=re.IGNORECASE).strip()
             h_clean = re.sub(r"[\-–—\s]+$", "", h_clean).strip()
             if h_clean:
                 clean_headers.append(h_clean)
@@ -309,9 +309,9 @@ def _parse_experience(exp_lines: List[str]) -> List[Dict[str, Any]]:
     return experience_list[:10]
 
 
-def _parse_education(edu_lines: List[str]) -> List[Dict[str, Any]]:
+def _parse_education(edu_lines: list[str]) -> list[dict[str, Any]]:
     education_list = []
-    current_edu: Optional[Dict] = None
+    current_edu: dict | None = None
 
     degree_keywords = [
         "bachelor", "master", "phd", "ph.d", "b.s", "m.s", "b.tech", "m.tech",
@@ -332,16 +332,16 @@ def _parse_education(edu_lines: List[str]) -> List[Dict[str, Any]]:
         is_inst = any(kw in line_clean.lower() for kw in institution_keywords)
         
         # Extract GPA / Marks
-        gpa_match = re.search(r"(cgpa|gpa|percentage|marks|%)\s*[:\-]?\s*([\d\.]+)", line_clean, re.I)
+        gpa_match = re.search(r"(cgpa|gpa|percentage|marks|%)\s*[:\-]?\s*([\d\.]+)", line_clean, re.IGNORECASE)
         gpa = gpa_match.group(2) if gpa_match else ""
         
         # Extract Timing
-        date_match = re.search(r"((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{4}|\b(19|20)\d{2}\b)", line_clean, re.I)
+        date_match = re.search(r"((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{4}|\b(19|20)\d{2}\b)", line_clean, re.IGNORECASE)
         year = date_match.group(0) if date_match else ""
 
         if is_degree or is_inst:
             if is_inst and not is_degree and not current_edu:
-                inst_name = re.sub(r"((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{4}|\b(19|20)\d{2}\b).*$", "", line_clean, flags=re.I).strip()
+                inst_name = re.sub(r"((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{4}|\b(19|20)\d{2}\b).*$", "", line_clean, flags=re.IGNORECASE).strip()
                 current_edu = {
                     "degree": "Degree",
                     "institution": inst_name[:120],
@@ -355,10 +355,10 @@ def _parse_education(edu_lines: List[str]) -> List[Dict[str, Any]]:
 
                 parts = re.split(r"[,|–\-]\s*", line_clean)
                 degree = parts[0].strip()
-                degree = re.sub(r"\((cgpa|gpa|percentage|marks|%).*?\)", "", degree, flags=re.I).strip()
+                degree = re.sub(r"\((cgpa|gpa|percentage|marks|%).*?\)", "", degree, flags=re.IGNORECASE).strip()
 
                 institution = parts[1].strip() if len(parts) > 1 else ""
-                institution = re.sub(r"\((cgpa|gpa|percentage|marks|%).*?\)", "", institution, flags=re.I).strip()
+                institution = re.sub(r"\((cgpa|gpa|percentage|marks|%).*?\)", "", institution, flags=re.IGNORECASE).strip()
                 
                 if not current_edu:
                     current_edu = {
@@ -390,7 +390,7 @@ def _parse_education(edu_lines: List[str]) -> List[Dict[str, Any]]:
     return education_list[:6]
 
 
-def _parse_projects(proj_lines: List[str]) -> List[Dict[str, Any]]:
+def _parse_projects(proj_lines: list[str]) -> list[dict[str, Any]]:
     projects_list = []
     current_proj = None
 
@@ -407,7 +407,7 @@ def _parse_projects(proj_lines: List[str]) -> List[Dict[str, Any]]:
             title_part = parts[0].strip()
             desc_part = parts[1].strip()
 
-            if 2 <= len(title_part) <= 60 and not re.search(r"^(tech|stack|built|technologies)\b", title_part, re.I):
+            if 2 <= len(title_part) <= 60 and not re.search(r"^(tech|stack|built|technologies)\b", title_part, re.IGNORECASE):
                 if current_proj:
                     projects_list.append(current_proj)
                 current_proj = {
@@ -431,14 +431,14 @@ def _parse_projects(proj_lines: List[str]) -> List[Dict[str, Any]]:
 
     for p in projects_list:
         p["description"] = p["description"].strip()[:500]
-        found_techs = [tech for tech in KNOWN_TECH_STACK if re.search(r"\b" + re.escape(tech) + r"\b", p["description"] + " " + p["title"], re.I)]
+        found_techs = [tech for tech in KNOWN_TECH_STACK if re.search(r"\b" + re.escape(tech) + r"\b", p["description"] + " " + p["title"], re.IGNORECASE)]
         if found_techs:
             p["tech_stack"] = ", ".join(list(dict.fromkeys(found_techs))[:5])
 
     return projects_list[:10]
 
 
-def _parse_achievements(achieve_lines: List[str]) -> List[Dict[str, Any]]:
+def _parse_achievements(achieve_lines: list[str]) -> list[dict[str, Any]]:
     # Join bullet points
     merged_lines = []
     for line in achieve_lines:
@@ -483,7 +483,7 @@ def _parse_achievements(achieve_lines: List[str]) -> List[Dict[str, Any]]:
     return achievements[:10]
 
 
-def parse_resume_text_to_json(raw_text: str) -> Dict[str, Any]:
+def parse_resume_text_to_json(raw_text: str) -> dict[str, Any]:
     """
     Parse raw resume text into structured JSON with sections:
     skills, experience, education, projects, achievements, other_info.

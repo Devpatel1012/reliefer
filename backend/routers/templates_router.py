@@ -1,17 +1,15 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
 import models
 import schemas
 from database import get_db
 from dependencies import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/templates", tags=["Resume Templates"])
 
 
-@router.get("/", response_model=List[schemas.ResumeTemplateResponse])
+@router.get("/", response_model=list[schemas.ResumeTemplateResponse])
 def list_templates(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -88,4 +86,3 @@ def delete_template(
     template = _get_owned_template(template_id, db, current_user)
     db.delete(template)
     db.commit()
-    return None

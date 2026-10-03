@@ -1,10 +1,11 @@
-import os
-import re
 import base64
 import logging
-import requests
+import os
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, Any, List, Optional
+from typing import Any
+
+import requests
 
 logger = logging.getLogger("reliefer.scraper")
 
@@ -33,7 +34,7 @@ TECH_KEYWORDS_RE = re.compile(
 )
 
 
-def _get_gh_api_headers() -> Dict[str, str]:
+def _get_gh_api_headers() -> dict[str, str]:
     headers = {
         "User-Agent": "Reliefer/1.0",
         "Accept": "application/vnd.github+json",
@@ -85,9 +86,9 @@ def _fetch_readme(username: str, repo_name: str) -> str:
     return ""
 
 
-def _fetch_readme_parallel(username: str, repos: List[Dict], max_workers: int = 10) -> Dict[str, str]:
+def _fetch_readme_parallel(username: str, repos: list[dict], max_workers: int = 10) -> dict[str, str]:
     """Fetch READMEs for multiple repos in parallel. Returns {repo_name: readme_text}."""
-    results: Dict[str, str] = {}
+    results: dict[str, str] = {}
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_name = {
             executor.submit(_fetch_readme, username, repo["name"]): repo["name"]
@@ -102,13 +103,13 @@ def _fetch_readme_parallel(username: str, repos: List[Dict], max_workers: int = 
                     results[repo_name] = ""
         except Exception:
             # Timeout or cancellation — collect whatever we have so far
-            for fut, name in future_to_name.items():
+            for name in future_to_name.values():
                 if name not in results:
                     results[name] = ""
     return results
 
 
-def _build_project_description(repo: Dict, readme_text: str) -> str:
+def _build_project_description(repo: dict, readme_text: str) -> str:
     """Build best possible project description from available data."""
     repo_name = repo.get("name", "Project")
     stars = repo.get("stargazers_count", 0)
@@ -135,7 +136,7 @@ def _build_project_description(repo: Dict, readme_text: str) -> str:
     return f"{readable}{tech_hint} — open source project."
 
 
-def _repo_quality_score(repo: Dict, has_readme: bool) -> int:
+def _repo_quality_score(repo: dict, has_readme: bool) -> int:
     """Score a repo for relevance/quality."""
     score = 0
     score += min(repo.get("stargazers_count", 0) * 5, 50)
@@ -157,14 +158,14 @@ def _repo_quality_score(repo: Dict, has_readme: bool) -> int:
     return score
 
 
-def _extract_skills_from_readme(readme_text: str, lang: Optional[str] = None) -> List[str]:
+def _extract_skills_from_readme(readme_text: str, lang: str | None = None) -> list[str]:
     """Extract tech skills mentioned in README text."""
     skills = []
     if lang:
         skills.append(lang)
     if readme_text:
         found = TECH_KEYWORDS_RE.findall(readme_text)
-        seen = set(s.lower() for s in skills)
+        seen = {s.lower() for s in skills}
         for tech in found:
             if tech.lower() not in seen:
                 seen.add(tech.lower())
@@ -187,7 +188,7 @@ def _infer_tech_from_readme(readme_text: str) -> str:
     return "Open Source"
 
 
-def _process_repos(username: str, candidate_repos: List[Dict]) -> tuple:
+def _process_repos(username: str, candidate_repos: list[dict]) -> tuple:
     """
     Fetch READMEs in parallel, score repos, build descriptions.
     Returns (scored_repos_list, extracted_skills_set).
@@ -199,7 +200,7 @@ def _process_repos(username: str, candidate_repos: List[Dict]) -> tuple:
     readme_map = _fetch_readme_parallel(username, candidate_repos, max_workers=10)
 
     extracted_skills: set = set()
-    scored_repos: List[Dict] = []
+    scored_repos: list[dict] = []
 
     for repo in candidate_repos:
         lang = repo.get("language")
@@ -228,7 +229,7 @@ def _process_repos(username: str, candidate_repos: List[Dict]) -> tuple:
     return scored_repos, extracted_skills
 
 
-def _scrape_github_html_fallback(clean_user: str) -> Dict[str, Any]:
+def _scrape_github_html_fallback(clean_user: str) -> dict[str, Any]:
     """Fallback HTML scraper for when GitHub API rate limit (403) is hit."""
     from bs4 import BeautifulSoup
     logger.info(f"Using HTML scraping fallback for GitHub user '{clean_user}'")
@@ -315,7 +316,7 @@ def _scrape_github_html_fallback(clean_user: str) -> Dict[str, Any]:
     }
 
 
-def scrape_github_profile(username_or_url: str) -> Dict[str, Any]:
+def scrape_github_profile(username_or_url: str) -> dict[str, Any]:
     """Fetch a GitHub profile and extract rich project data using parallel README fetching.
 
     Fetches READMEs for all non-forked repos simultaneously (ThreadPoolExecutor, 10 workers),
@@ -395,7 +396,7 @@ def scrape_github_profile(username_or_url: str) -> Dict[str, Any]:
         raise RuntimeError(f"Failed to fetch GitHub profile for '{clean_user}'. Error: {e}")
 
 
-def scrape_linkedin_profile(url_or_username: str) -> Dict[str, Any]:
+def scrape_linkedin_profile(url_or_username: str) -> dict[str, Any]:
     """Attempt to scrape public LinkedIn profile metadata.
     Includes graceful handling for LinkedIn anti-bot blocks.
     """
@@ -471,5 +472,5 @@ def scrape_linkedin_profile(url_or_username: str) -> Dict[str, Any]:
             "experience": [],
             "education": [],
             "projects": [],
-            "warning": f"Unable to reach LinkedIn profile. Error: {str(e)}",
+            "warning": f"Unable to reach LinkedIn profile. Error: {e!s}",
         }

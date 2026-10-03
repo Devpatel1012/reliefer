@@ -1,8 +1,12 @@
 from datetime import datetime
-from typing import Optional, List
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer, field_validator
-
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_serializer,
+)
 
 # ─── Auth / User ───────────────────────────────────────────
 
@@ -16,10 +20,10 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=2, max_length=100)
-    age: Optional[int] = Field(None, ge=16, le=120)
-    interest: Optional[str] = Field(None, min_length=2, max_length=100)
-    profession: Optional[str] = Field(None, min_length=2, max_length=100)
+    name: str | None = Field(None, min_length=2, max_length=100)
+    age: int | None = Field(None, ge=16, le=120)
+    interest: str | None = Field(None, min_length=2, max_length=100)
+    profession: str | None = Field(None, min_length=2, max_length=100)
 
 
 class PasswordChange(BaseModel):
@@ -40,10 +44,10 @@ class UserResponse(BaseModel):
     profession: str
     email: EmailStr
     is_active: bool
-    huggingface_api_key: Optional[str] = None
+    huggingface_api_key: str | None = None
 
     @field_serializer("huggingface_api_key")
-    def serialize_api_key(self, v: Optional[str], _info) -> Optional[str]:
+    def serialize_api_key(self, v: str | None, _info) -> str | None:
         if v and str(v).strip():
             return "***configured***"
         return None
@@ -72,8 +76,8 @@ class ApiKeyUpdate(BaseModel):
 
 class SkillBase(BaseModel):
     name: str
-    category: Optional[str] = None
-    proficiency: Optional[str] = None
+    category: str | None = None
+    proficiency: str | None = None
 
 
 class SkillCreate(SkillBase):
@@ -81,9 +85,9 @@ class SkillCreate(SkillBase):
 
 
 class SkillUpdate(BaseModel):
-    name: Optional[str] = None
-    category: Optional[str] = None
-    proficiency: Optional[str] = None
+    name: str | None = None
+    category: str | None = None
+    proficiency: str | None = None
 
 
 class SkillResponse(SkillBase):
@@ -96,11 +100,11 @@ class SkillResponse(SkillBase):
 
 class ProjectBase(BaseModel):
     title: str
-    description: Optional[str] = None
-    technologies: Optional[str] = None
-    link: Optional[str] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    description: str | None = None
+    technologies: str | None = None
+    link: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
 
 
 class ProjectCreate(ProjectBase):
@@ -108,12 +112,12 @@ class ProjectCreate(ProjectBase):
 
 
 class ProjectUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    technologies: Optional[str] = None
-    link: Optional[str] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    title: str | None = None
+    description: str | None = None
+    technologies: str | None = None
+    link: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
 
 
 class ProjectResponse(ProjectBase):
@@ -126,8 +130,8 @@ class ProjectResponse(ProjectBase):
 
 class AchievementBase(BaseModel):
     title: str
-    description: Optional[str] = None
-    date: Optional[str] = None
+    description: str | None = None
+    date: str | None = None
 
 
 class AchievementCreate(AchievementBase):
@@ -135,9 +139,9 @@ class AchievementCreate(AchievementBase):
 
 
 class AchievementUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    date: Optional[str] = None
+    title: str | None = None
+    description: str | None = None
+    date: str | None = None
 
 
 class AchievementResponse(AchievementBase):
@@ -151,10 +155,10 @@ class AchievementResponse(AchievementBase):
 class EducationBase(BaseModel):
     institution: str
     degree: str
-    field_of_study: Optional[str] = None
-    start_year: Optional[str] = None
-    end_year: Optional[str] = None
-    gpa: Optional[str] = None
+    field_of_study: str | None = None
+    start_year: str | None = None
+    end_year: str | None = None
+    gpa: str | None = None
 
 
 class EducationCreate(EducationBase):
@@ -162,12 +166,12 @@ class EducationCreate(EducationBase):
 
 
 class EducationUpdate(BaseModel):
-    institution: Optional[str] = None
-    degree: Optional[str] = None
-    field_of_study: Optional[str] = None
-    start_year: Optional[str] = None
-    end_year: Optional[str] = None
-    gpa: Optional[str] = None
+    institution: str | None = None
+    degree: str | None = None
+    field_of_study: str | None = None
+    start_year: str | None = None
+    end_year: str | None = None
+    gpa: str | None = None
 
 
 class EducationResponse(EducationBase):
@@ -181,9 +185,9 @@ class EducationResponse(EducationBase):
 class ExperienceBase(BaseModel):
     company: str
     role: str
-    description: Optional[str] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    description: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
     is_current: bool = False
 
 
@@ -192,12 +196,12 @@ class ExperienceCreate(ExperienceBase):
 
 
 class ExperienceUpdate(BaseModel):
-    company: Optional[str] = None
-    role: Optional[str] = None
-    description: Optional[str] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    is_current: Optional[bool] = None
+    company: str | None = None
+    role: str | None = None
+    description: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    is_current: bool | None = None
 
 
 class ExperienceResponse(ExperienceBase):
@@ -219,9 +223,9 @@ class ResumeTemplateCreate(ResumeTemplateBase):
 
 
 class ResumeTemplateUpdate(BaseModel):
-    name: Optional[str] = None
-    content: Optional[str] = None
-    is_default: Optional[bool] = None
+    name: str | None = None
+    content: str | None = None
+    is_default: bool | None = None
 
 
 class ResumeTemplateResponse(ResumeTemplateBase):
@@ -234,33 +238,33 @@ class ResumeTemplateResponse(ResumeTemplateBase):
 # ─── Job Description Analysis / Resume Generation ────────────
 
 class JDAnalyzeRequest(BaseModel):
-    job_description: Optional[str] = None
-    job_url: Optional[str] = None
+    job_description: str | None = None
+    job_url: str | None = None
 
 
 class JDAnalyzeResponse(BaseModel):
-    keywords: List[str]
+    keywords: list[str]
     job_description_used: str
 
 
 class ResumeGenerateRequest(BaseModel):
-    job_title: Optional[str] = None
-    job_description: Optional[str] = None
-    job_url: Optional[str] = None
-    template_id: Optional[int] = None
-    model: Optional[str] = None  # override Hugging Face model id
+    job_title: str | None = None
+    job_description: str | None = None
+    job_url: str | None = None
+    template_id: int | None = None
+    model: str | None = None  # override Hugging Face model id
 
 
 class GeneratedResumeResponse(BaseModel):
     id: int
-    job_title: Optional[str] = None
+    job_title: str | None = None
     job_description: str
-    extracted_keywords: Optional[str] = None
+    extracted_keywords: str | None = None
     content: str
     version: int
-    share_token: Optional[str] = None
-    rating: Optional[int] = None
-    feedback_text: Optional[str] = None
+    share_token: str | None = None
+    rating: int | None = None
+    feedback_text: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -268,7 +272,7 @@ class GeneratedResumeResponse(BaseModel):
 
 class ResumeFeedbackRequest(BaseModel):
     rating: int = Field(..., ge=1, le=5)
-    feedback_text: Optional[str] = Field(None, max_length=1000)
+    feedback_text: str | None = Field(None, max_length=1000)
 
 
 class ResumeShareResponse(BaseModel):
@@ -297,22 +301,22 @@ class ResumeParseTextRequest(BaseModel):
 
 
 class ParsedResumeResponse(BaseModel):
-    skills: List[str] = []
-    experience: List[dict] = []
-    education: List[dict] = []
-    projects: List[dict] = []
-    achievements: List[dict] = []
-    other_info: List[str] = []
-    raw_text: Optional[str] = None
+    skills: list[str] = []
+    experience: list[dict] = []
+    education: list[dict] = []
+    projects: list[dict] = []
+    achievements: list[dict] = []
+    other_info: list[str] = []
+    raw_text: str | None = None
 
 
 class ParsedResumeImportRequest(BaseModel):
-    skills: Optional[List[str]] = []
-    experience: Optional[List[dict]] = []
-    education: Optional[List[dict]] = []
-    projects: Optional[List[dict]] = []
-    achievements: Optional[List[dict]] = []
-    other_info: Optional[List[str]] = []
+    skills: list[str] | None = []
+    experience: list[dict] | None = []
+    education: list[dict] | None = []
+    projects: list[dict] | None = []
+    achievements: list[dict] | None = []
+    other_info: list[str] | None = []
 
 
 # ─── External Profile Scraping ────────────────────────────────

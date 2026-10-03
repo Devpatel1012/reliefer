@@ -3,7 +3,7 @@ import logging
 import sys
 import time
 import uuid
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -75,4 +75,4 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             logger.error(
                 f"<-- HTTP {request.method} {request.url.path} | EXCEPTION: {exc} | Duration: {duration_ms}ms (request_id={request_id})"
             )
-            raise exc
+            raise

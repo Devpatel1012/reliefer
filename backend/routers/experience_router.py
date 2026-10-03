@@ -1,17 +1,15 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
 import models
 import schemas
 from database import get_db
 from dependencies import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/experience", tags=["Experience"])
 
 
-@router.get("/", response_model=List[schemas.ExperienceResponse])
+@router.get("/", response_model=list[schemas.ExperienceResponse])
 def list_experience(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -72,4 +70,3 @@ def delete_experience(
     experience = _get_owned_experience(experience_id, db, current_user)
     db.delete(experience)
     db.commit()
-    return None

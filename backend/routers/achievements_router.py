@@ -1,17 +1,15 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
 import models
 import schemas
 from database import get_db
 from dependencies import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/achievements", tags=["Achievements"])
 
 
-@router.get("/", response_model=List[schemas.AchievementResponse])
+@router.get("/", response_model=list[schemas.AchievementResponse])
 def list_achievements(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -76,4 +74,3 @@ def delete_achievement(
     achievement = _get_owned_achievement(achievement_id, db, current_user)
     db.delete(achievement)
     db.commit()
-    return None

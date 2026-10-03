@@ -1,17 +1,13 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
+import models
+from database import engine
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
-
-import models
-from database import engine
 from limiter import limiter
 from logging_config import RequestLoggingMiddleware, setup_logging
 from routers import (
@@ -24,6 +20,9 @@ from routers import (
     skills_router,
     templates_router,
 )
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 load_dotenv()
 

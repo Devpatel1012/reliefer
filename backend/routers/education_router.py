@@ -1,17 +1,15 @@
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
 import models
 import schemas
 from database import get_db
 from dependencies import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/education", tags=["Education"])
 
 
-@router.get("/", response_model=List[schemas.EducationResponse])
+@router.get("/", response_model=list[schemas.EducationResponse])
 def list_education(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -67,4 +65,3 @@ def delete_education(
     education = _get_owned_education(education_id, db, current_user)
     db.delete(education)
     db.commit()
-    return None

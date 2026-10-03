@@ -10,25 +10,23 @@ Pipeline:
   7. render_pdf()                    → polished PDF bytes
 """
 
-import os
-import re
 import html
 import json
+import logging
+import os
+import re
 import time
 import unicodedata
-import base64
-import logging
 from collections import Counter
 from io import BytesIO
-from typing import List, Optional, Dict, Any, Tuple
+from typing import Any
 
+import models
 import requests
 from fastapi import HTTPException
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
-
-import models
 from resume_formatter import format_resume as _format_resume_structure
 
 logger = logging.getLogger("reliefer.resume_ai")
@@ -114,7 +112,7 @@ def _strip_emojis(text: str) -> str:
     return re.sub(r"\s{2,}", " ", "".join(result)).strip()
 
 
-def _clean_na(value: Optional[str]) -> str:
+def _clean_na(value: str | None) -> str:
     """Return '' if value is None, empty, or a placeholder like N/A."""
     if not value:
         return ""
@@ -124,12 +122,12 @@ def _clean_na(value: Optional[str]) -> str:
     return stripped
 
 
-def _clean_text(text: Optional[str]) -> str:
+def _clean_text(text: str | None) -> str:
     """Strip emojis and N/A from a text field."""
     return _strip_emojis(_clean_na(text or ""))
 
 
-def _score_relevance(text: str, keywords: List[str]) -> int:
+def _score_relevance(text: str, keywords: list[str]) -> int:
     """Count how many job keywords appear in text (case-insensitive)."""
     if not text or not keywords:
         return 0
@@ -137,7 +135,7 @@ def _score_relevance(text: str, keywords: List[str]) -> int:
     return sum(1 for kw in keywords if kw.lower() in text_lower)
 
 
-def _expand_skill_entry(raw_name: str, raw_cat: str) -> List[Tuple[str, str]]:
+def _expand_skill_entry(raw_name: str, raw_cat: str) -> list[tuple[str, str]]:
     """
     If a skill name looks like 'Tech Stack: Python, C++, PyTorch' (a common
     artefact from resume auto-parsing), split it into individual skill tokens.
@@ -180,9 +178,7 @@ def _is_garbage_project(p: models.Project) -> bool:
     if TRIVIAL_DESC_RE.match(desc) and not tech:
         return True
     # Explicitly meaningless
-    if title.lower().endswith(".github.io"):
-        return True
-    return False
+    return bool(title.lower().endswith(".github.io"))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -232,7 +228,7 @@ def fetch_job_description_from_url(url: str) -> str:
     return text
 
 
-def extract_keywords(text: str, top_n: int = 30) -> List[str]:
+def extract_keywords(text: str, top_n: int = 30) -> list[str]:
     """Extract the most relevant keywords from a job description."""
     text = (text.replace("&amp;", "&").replace("&#39;", "'").replace("&lt;", "<")
                 .replace("&gt;", ">").replace("&quot;", '"').replace("&nbsp;", " "))
@@ -248,17 +244,17 @@ def extract_keywords(text: str, top_n: int = 30) -> List[str]:
 
 def curate_profile_for_job(
     user: models.User,
-    keywords: List[str],
+    keywords: list[str],
     max_projects: int = 3,
     max_experience: int = 4,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Score, filter, and rank the user's profile data against job keywords.
 
     Returns a dict with clean, curated sections ready for prompt injection.
     """
     # ── Skills ─────────────────────────────────────────────────────────────
-    skill_by_cat: Dict[str, List[str]] = {}
+    skill_by_cat: dict[str, list[str]] = {}
     seen_skills: set = set()
     for s in (user.skills or []):
         raw_name = _clean_text(s.name or "")
@@ -395,12 +391,12 @@ def curate_profile_for_job(
 # Profile text builder (curated, clean)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def build_curated_profile_text(curated: Dict[str, Any]) -> str:
+def build_curated_profile_text(curated: dict[str, Any]) -> str:
     """
     Build a clean, structured profile text block from the curated profile dict.
     No N/A values, no emojis, no raw markdown artefacts.
     """
-    parts: List[str] = []
+    parts: list[str] = []
 
     # Meta
     meta = []
@@ -509,8 +505,8 @@ def build_profile_summary(user: models.User) -> str:
 def build_prompt(
     user: models.User,
     job_description: str,
-    keywords: List[str],
-    template_content: Optional[str],
+    keywords: list[str],
+    template_content: str | None,
 ) -> str:
     curated = curate_profile_for_job(user, keywords)
     profile_text = build_curated_profile_text(curated)
@@ -602,7 +598,7 @@ def _post_process_resume(text: str) -> str:
     text = _strip_emojis(text)
 
     # 2. Process line by line
-    clean_lines: List[str] = []
+    clean_lines: list[str] = []
     for line in text.splitlines():
         # Remove "| N/A – N/A" and similar fragments
         line = _NA_IN_LINE_RE.sub("", line)
@@ -669,14 +665,14 @@ def generate_structured_resume_fallback(prompt: str) -> str:
     jd_raw = _parse_section(prompt, "--- TARGET JOB DESCRIPTION ---", "Now write")
 
     # ── Parse the structured profile text ──────────────────────────────────
-    skills_lines: List[str] = []
-    exp_blocks: List[Dict] = []
-    proj_blocks: List[Dict] = []
-    edu_lines: List[str] = []
-    ach_lines: List[str] = []
+    skills_lines: list[str] = []
+    exp_blocks: list[dict] = []
+    proj_blocks: list[dict] = []
+    edu_lines: list[str] = []
+    ach_lines: list[str] = []
 
     current_section = None
-    current_block: Dict = {}
+    current_block: dict = {}
 
     for line in profile_raw.splitlines():
         s = line.strip()
@@ -857,11 +853,11 @@ def generate_structured_resume_fallback(prompt: str) -> str:
 # HuggingFace API caller
 # ─────────────────────────────────────────────────────────────────────────────
 
-_HF_MODELS_CACHE: Dict[str, Any] = {"timestamp": 0.0, "candidates": []}
+_HF_MODELS_CACHE: dict[str, Any] = {"timestamp": 0.0, "candidates": []}
 CACHE_TTL_SECONDS = 1800.0  # 30 minutes cache
 
 
-def scrape_and_classify_hf_models() -> List[Dict[str, Any]]:
+def scrape_and_classify_hf_models() -> list[dict[str, Any]]:
     """Scrapes live models from https://huggingface.co/inference/models,
 
     classifies them by parameter size and capability, and returns an ordered
@@ -960,7 +956,7 @@ def scrape_and_classify_hf_models() -> List[Dict[str, Any]]:
     return candidates
 
 
-def call_huggingface(api_key: str, prompt: str, model: Optional[str] = None) -> str:
+def call_huggingface(api_key: str, prompt: str, model: str | None = None) -> str:
     headers = {
         "Authorization": f"Bearer {api_key.strip()}",
         "Content-Type": "application/json",
@@ -1087,7 +1083,7 @@ def call_huggingface(api_key: str, prompt: str, model: Optional[str] = None) -> 
 # PDF renderer
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _wrap_text(text: str, max_chars: int) -> List[str]:
+def _wrap_text(text: str, max_chars: int) -> list[str]:
     """Word-wrap a single line into multiple lines of at most max_chars."""
     if not text:
         return [""]
@@ -1129,7 +1125,7 @@ def render_pdf(title: str, content: str) -> bytes:
     margin_right = 0.75 * inch
     margin_top = 0.75 * inch
     margin_bottom = 0.75 * inch
-    usable_width = width - margin_left - margin_right
+    width - margin_left - margin_right
     max_chars_body = 95
     max_chars_bullet = 88
 
@@ -1294,6 +1290,6 @@ def render_pdf(title: str, content: str) -> bytes:
     return buffer.read()
 
 
-def _wrap_line(text: str, max_chars: int) -> List[str]:
+def _wrap_line(text: str, max_chars: int) -> list[str]:
     """Legacy wrapper — delegates to _wrap_text."""
     return _wrap_text(text, max_chars)

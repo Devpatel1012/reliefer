@@ -1,16 +1,20 @@
-from typing import List, Optional
-
-from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
-from sqlalchemy.orm import Session
 
 import models
 import schemas
 from database import get_db
 from dependencies import get_current_user
 from encryption import decrypt_string
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from limiter import limiter
-from resume_parser import extract_text, parse_resume_text_to_json
-from scraper import scrape_github_profile, scrape_linkedin_profile
 from resume_ai import (
     build_prompt,
     call_huggingface,
@@ -19,12 +23,15 @@ from resume_ai import (
     render_pdf,
 )
 from resume_formatter import format_resume
+from resume_parser import extract_text, parse_resume_text_to_json
+from scraper import scrape_github_profile, scrape_linkedin_profile
+from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["Resume"])
 
 
 
-def _resolve_job_description(job_description: Optional[str], job_url: Optional[str]) -> str:
+def _resolve_job_description(job_description: str | None, job_url: str | None) -> str:
     if job_description and job_description.strip():
         return job_description.strip()
     if job_url and job_url.strip():
@@ -122,7 +129,7 @@ def generate_resume(
     return db_resume
 
 
-@router.get("/resume/history", response_model=List[schemas.GeneratedResumeResponse])
+@router.get("/resume/history", response_model=list[schemas.GeneratedResumeResponse])
 def resume_history(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -167,7 +174,6 @@ def delete_resume(
     resume = _get_owned_resume(resume_id, db, current_user)
     db.delete(resume)
     db.commit()
-    return None
 
 
 @router.get("/resume/{resume_id}/export-pdf")
@@ -450,7 +456,7 @@ def import_github_profile(
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to scrape GitHub profile: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to scrape GitHub profile: {e!s}")
 
 
 @router.post("/import/linkedin")

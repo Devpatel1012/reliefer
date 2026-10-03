@@ -1,8 +1,9 @@
 import base64
 import hashlib
 import os
-from dotenv import load_dotenv
+
 from cryptography.fernet import Fernet
+from dotenv import load_dotenv
 
 load_dotenv()
 
