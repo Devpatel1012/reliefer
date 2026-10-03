@@ -1,0 +1,29 @@
+name: Reliefer CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Trigger Railway Deployment Hook
+        if: env.RAILWAY_DEPLOY_HOOK != ''
+        env:
+          RAILWAY_DEPLOY_HOOK: ${{ secrets.RAILWAY_DEPLOY_HOOK }}
+        run: |
+          curl -s -X POST "$RAILWAY_DEPLOY_HOOK"
+
+      - name: Trigger Render Deploy Hook
+        if: env.RENDER_DEPLOY_HOOK != ''
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          curl -s -X POST "$RENDER_DEPLOY_HOOK"

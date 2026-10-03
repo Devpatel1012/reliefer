@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reliefer - Authentication</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div class="background-animation"></div>
+    <div class="container">
+        <div class="form-box">
+            <h2 class="brand-title">Reliefer</h2>
+            
+            <div class="button-box">
+                <div id="btn"></div>
+                <button type="button" class="toggle-btn" onclick="showLogin()">Log In</button>
+                <button type="button" class="toggle-btn" onclick="showSignup()">Sign Up</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="input-group">
+                <input type="email" id="login-email" class="input-field" placeholder="Email Address" required>
+                <div class="password-field-wrapper">
+                    <input type="password" id="login-password" class="input-field" placeholder="Password" required>
+                    <button type="button" class="toggle-pwd-btn" onclick="togglePasswordVisibility('login-password', this)">👁</button>
+                </div>
+                <button type="submit" class="submit-btn">Log In</button>
+                <a href="#" onclick="showForgotPasswordAlert(event)" class="forgot-link">Forgot Password?</a>
+            </form>
+
+            <!-- Signup Form (Hidden by default) -->
+            <form id="signup-form" class="input-group" style="display: none;">
+                <!-- Progress Indicator -->
+                <div class="progress-bar">
+                    <div class="progress-step active" id="progress-1">1</div>
+                    <div class="progress-step" id="progress-2">2</div>
+                    <div class="progress-step" id="progress-3">3</div>
+                </div>
+
+                <!-- Step 1: Name -->
+                <div class="signup-step" id="step-1">
+                    <h3>Basic Info</h3>
+                    <input type="text" id="signup-name" class="input-field" placeholder="Full Name" required>
+                    <button type="button" class="submit-btn step-btn" onclick="nextStep(1)">Continue</button>
+                </div>
+                
+                <!-- Step 2: Details -->
+                <div class="signup-step" id="step-2" style="display: none;">
+                    <h3>Profile Details</h3>
+                    <input type="number" id="signup-age" class="input-field" placeholder="Age" min="16" max="100" required>
+                    <input type="text" id="signup-interest" class="input-field" placeholder="Primary Interest (e.g. AI, Trading)" required>
+                    
+                    <select id="signup-profession" class="input-field" onchange="toggleOtherProfession()" required>
+                        <option value="" disabled selected>Select Profession</option>
+                        <option value="Software Engineer">Software Engineer</option>
+                        <option value="Data Scientist">Data Scientist</option>
+                        <option value="Financial Analyst">Financial Analyst</option>
+                        <option value="Product Manager">Product Manager</option>
+                        <option value="UX/UI Designer">UX/UI Designer</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <input type="text" id="signup-profession-other" class="input-field" placeholder="Specify Profession" style="display: none;">
+                    
+                    <div class="btn-group">
+                        <button type="button" class="submit-btn step-btn back-btn" onclick="prevStep(2)">Back</button>
+                        <button type="button" class="submit-btn step-btn" onclick="nextStep(2)">Continue</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Security -->
+                <div class="signup-step" id="step-3" style="display: none;">
+                    <h3>Account Security</h3>
+                    <input type="email" id="signup-email" class="input-field" placeholder="Email Address" required>
+                    
+                    <div class="password-field-wrapper">
+                        <input type="password" id="signup-password" class="input-field" placeholder="Create Password" required oninput="evaluatePasswordStrength(this.value)">
+                        <button type="button" class="toggle-pwd-btn" onclick="togglePasswordVisibility('signup-password', this)">👁</button>
+                    </div>
+                    <div class="strength-bar-container">
+                        <div id="strength-bar" class="strength-bar"></div>
+                    </div>
+                    <span id="strength-text" class="strength-text"></span>
+
+                    <div class="password-field-wrapper">
+                        <input type="password" id="signup-confirm-password" class="input-field" placeholder="Confirm Password" required>
+                        <button type="button" class="toggle-pwd-btn" onclick="togglePasswordVisibility('signup-confirm-password', this)">👁</button>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button type="button" class="submit-btn step-btn back-btn" onclick="prevStep(3)">Back</button>
+                        <button type="submit" class="submit-btn">Complete Sign Up</button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Status Messages -->
+            <div id="message-box" class="message"></div>
+        </div>
+    </div>
+
+    <!-- Device independent relative path -->
+    <script src="./script.js"></script> 
+</body>
+</html>

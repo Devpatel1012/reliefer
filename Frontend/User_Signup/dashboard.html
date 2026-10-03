@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reliefer - AI Resume Personalization</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./dashboard.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+    <div class="background-animation"></div>
+
+    <!-- Stacking Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i data-lucide="sparkles" style="color: #10b981; vertical-align: middle; margin-right: 6px;"></i>Reliefer
+        </div>
+        <button class="mobile-toggle" id="mobile-toggle"><i data-lucide="menu"></i></button>
+        <div class="nav-links" id="nav-links">
+            <a href="#" class="nav-link active" data-tab="overview"><i data-lucide="home"></i> Overview</a>
+            <a href="#" class="nav-link" data-tab="profile"><i data-lucide="user"></i> Master Profile</a>
+            <a href="#" class="nav-link" data-tab="builder"><i data-lucide="wand-2"></i> AI Resume Builder</a>
+            <a href="#" class="nav-link" data-tab="history"><i data-lucide="history"></i> History <span id="count-badge-history" class="tab-badge" style="display: none;">0</span></a>
+            <a href="#" class="nav-link" data-tab="settings"><i data-lucide="key"></i> HF API Key</a>
+        </div>
+        <button class="logout-btn" id="logout-btn"><i data-lucide="log-out"></i> Log Out</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+
+        <!-- System Message / Alert Banner (Fallback) -->
+        <div id="dash-message" class="dash-message" style="display: none;"></div>
+
+        <!-- ════════════════════ TAB 1: OVERVIEW ════════════════════ -->
+        <section id="tab-overview" class="tab-content active">
+            <!-- Welcome Hero Section -->
+            <div class="hero-section">
+                <div class="hero-content">
+                    <p class="hero-greeting">Welcome back,</p>
+                    <h1 class="hero-name" id="user-name">User</h1>
+                    <p class="hero-tagline">Your AI-powered resume personalization assistant is active.</p>
+                </div>
+                <div class="hero-glow"></div>
+            </div>
+
+            <!-- Profile Completeness Ring -->
+            <div class="completeness-card">
+                <div class="ring-container">
+                    <svg class="ring-svg" viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#10b981" />
+                                <stop offset="100%" stop-color="#06b6d4" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="ring-circle-bg" cx="50" cy="50" r="40"></circle>
+                        <circle id="completeness-circle" class="ring-circle-val" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
+                    </svg>
+                    <span class="ring-percent" id="completeness-percent">0%</span>
+                </div>
+                <div class="completeness-info">
+                    <h3>Profile Completeness</h3>
+                    <p id="completeness-subtitle">Add your skills, projects, work experience, and HF API key to unlock full AI optimization.</p>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-row" id="stats-row-container">
+                <div class="stat-card">
+                    <div class="stat-icon"><i data-lucide="user-check"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-label">Profession</span>
+                        <span class="stat-value" id="stat-profession">—</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i data-lucide="target"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-label">Interest</span>
+                        <span class="stat-value" id="stat-interest">—</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i data-lucide="key"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-label">HF Key Status</span>
+                        <span class="stat-value" id="stat-hf-key"><span class="badge badge-warning">Not Set</span></span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i data-lucide="zap"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-label">Total Skills</span>
+                        <span class="stat-value" id="stat-skills">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i data-lucide="briefcase"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-label">Projects</span>
+                        <span class="stat-value" id="stat-projects">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i data-lucide="file-text"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-label">Resumes Generated</span>
+                        <span class="stat-value" id="stat-resumes">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="actions-section">
+                <h2 class="section-title">Quick Actions</h2>
+                <div class="actions-grid">
+                    <div class="action-card">
+                        <div class="action-icon"><i data-lucide="rocket"></i></div>
+                        <h3>Tailor Resume</h3>
+                        <p>Paste a Job Description or Job Posting URL to generate a personalized ATS resume.</p>
+                        <button class="action-btn" onclick="switchTab('builder')">Open Resume Builder</button>
+                    </div>
+                    <div class="action-card">
+                        <div class="action-icon"><i data-lucide="file-spreadsheet"></i></div>
+                        <h3>Master Profile</h3>
+                        <p>Manage your skills, projects, work experiences, and achievements in one place.</p>
+                        <button class="action-btn" onclick="switchTab('profile')">Manage Profile</button>
+                    </div>
+                    <div class="action-card">
+                        <div class="action-icon"><i data-lucide="file-up"></i></div>
+                        <h3>Import Resume</h3>
+                        <p>Upload your PDF or DOCX resume for instant AI auto-fill into your profile.</p>
+                        <button class="action-btn" onclick="switchTab('profile'); setTimeout(focusResumeUpload, 100);">Upload Resume</button>
+                    </div>
+                    <div class="action-card">
+                        <div class="action-icon"><i data-lucide="shield-check"></i></div>
+                        <h3>Hugging Face Key</h3>
+                        <p>Connect your personal Hugging Face API Key to enable LLM-powered customization.</p>
+                        <button class="action-btn" onclick="switchTab('settings')">Configure Key</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════ TAB 2: MASTER PROFILE ════════════════════ -->
+        <section id="tab-profile" class="tab-content" style="display: none;">
+            <h2 class="section-title">Master Professional Profile</h2>
+            <p class="section-subtitle">Keep your profile updated. Reliefer uses this data to customize your resume for every job application.</p>
+
+            <!-- Resume Upload & Parsing Card -->
+            <div class="dropzone-card" id="dropzone-container" onclick="triggerFileInput()">
+                <div class="dropzone-icon"><i data-lucide="upload-cloud" style="width: 44px; height: 44px;"></i></div>
+                <div class="dropzone-title">Upload Existing Resume (PDF / DOCX / TXT)</div>
+                <div class="dropzone-subtitle">Drag & drop your file here, or click to choose a file for instant AI auto-fill.</div>
+                <button type="button" class="primary-btn-sm" onclick="event.stopPropagation(); triggerFileInput();"><i data-lucide="file-text"></i> Choose File</button>
+                <input type="file" id="resume-file-input" accept=".pdf,.docx,.doc,.txt" style="display: none;" onchange="handleFileUpload(this.files)">
+            </div>
+
+            <!-- Alternative: Paste Text Toggle -->
+            <div style="margin-bottom: 20px; text-align: right;">
+                <button type="button" class="secondary-btn-sm" onclick="togglePasteResumeBox()"><i data-lucide="clipboard"></i> Paste Resume Text Instead</button>
+            </div>
+
+            <div id="paste-resume-container" class="panel" style="display: none; margin-bottom: 24px;">
+                <h3>Paste Raw Resume Text</h3>
+                <form id="form-paste-resume" onsubmit="handlePasteResume(event)">
+                    <textarea id="paste-resume-text" placeholder="Paste your complete resume text here..." rows="6" required></textarea>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px;">
+                        <button type="button" class="secondary-btn-sm" onclick="togglePasteResumeBox()">Cancel</button>
+                        <button type="submit" class="primary-btn-sm"><i data-lucide="sparkles"></i> Parse Text</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Connect External Accounts (GitHub / LinkedIn Import) -->
+            <div class="panel" style="margin-bottom: 24px;">
+                <h3><i data-lucide="link-2" style="color: #10b981;"></i> Connect & Auto-Fill from External Accounts</h3>
+                <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px;">Import projects, repositories, and skills automatically from your public GitHub or LinkedIn profile.</p>
+
+                <div class="actions-grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <!-- GitHub Import Card -->
+                    <div style="background: rgba(7, 10, 14, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                            <i data-lucide="github" style="width: 22px; height: 22px; color: #10b981;"></i>
+                            <h4 style="font-size: 15px; font-weight: 600; color: #f1f5f9;">Import GitHub Repos</h4>
+                        </div>
+                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">Fetch top public repositories as projects & tech stack as skills.</p>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="github-username-input" placeholder="GitHub username (e.g. torvalds)" style="flex: 1; padding: 8px 12px; font-size: 13px;">
+                            <button type="button" class="primary-btn-sm" onclick="importFromGitHub()"><i data-lucide="download"></i> Import</button>
+                        </div>
+                    </div>
+
+                    <!-- LinkedIn Import Card -->
+                    <div style="background: rgba(7, 10, 14, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                            <i data-lucide="linkedin" style="width: 22px; height: 22px; color: #06b6d4;"></i>
+                            <h4 style="font-size: 15px; font-weight: 600; color: #f1f5f9;">Import LinkedIn Profile</h4>
+                        </div>
+                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">Import headline, current role, and skills from public profile URL.</p>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="url" id="linkedin-url-input" placeholder="https://linkedin.com/in/username" style="flex: 1; padding: 8px 12px; font-size: 13px;">
+                            <button type="button" class="primary-btn-sm" onclick="importFromLinkedIn()"><i data-lucide="download"></i> Import</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="subnav-container">
+                <button class="subnav-btn active" data-subtab="skills">Skills <span id="count-badge-skills" class="tab-badge">0</span></button>
+                <button class="subnav-btn" data-subtab="projects">Projects <span id="count-badge-projects" class="tab-badge">0</span></button>
+                <button class="subnav-btn" data-subtab="experience">Experience <span id="count-badge-experience" class="tab-badge">0</span></button>
+                <button class="subnav-btn" data-subtab="education">Education <span id="count-badge-education" class="tab-badge">0</span></button>
+                <button class="subnav-btn" data-subtab="achievements">Achievements <span id="count-badge-achievements" class="tab-badge">0</span></button>
+                <button class="subnav-btn" data-subtab="templates">Templates</button>
+            </div>
+
+            <!-- Subtab: Skills -->
+            <div id="subtab-skills" class="subtab-content active">
+                <div class="panel">
+                    <h3>Add Skill</h3>
+                    <form id="form-add-skill" class="grid-form">
+                        <input type="text" id="skill-name" placeholder="Skill Name (e.g. Python, React)" required>
+                        <input type="text" id="skill-category" placeholder="Category (e.g. Technical, Soft Skill, Tool)">
+                        <select id="skill-proficiency">
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate" selected>Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                            <option value="Expert">Expert</option>
+                        </select>
+                        <button type="submit" class="primary-btn">Add Skill</button>
+                    </form>
+                </div>
+                <div class="panel">
+                    <h3>My Skills</h3>
+                    <div id="skills-list" class="cards-list"></div>
+                </div>
+            </div>
+
+            <!-- Subtab: Projects -->
+            <div id="subtab-projects" class="subtab-content" style="display: none;">
+                <div class="panel">
+                    <h3>Add Project</h3>
+                    <form id="form-add-project" class="vertical-form">
+                        <input type="text" id="proj-title" placeholder="Project Title" required>
+                        <input type="text" id="proj-tech" placeholder="Technologies Used (comma separated, e.g. FastAPI, PyTorch, React)">
+                        <input type="url" id="proj-link" placeholder="Project Link / Repo URL (Optional)">
+                        <div class="form-row">
+                            <input type="text" id="proj-start" placeholder="Start Date (e.g. Jan 2024)">
+                            <input type="text" id="proj-end" placeholder="End Date (e.g. Present)">
+                        </div>
+                        <textarea id="proj-desc" placeholder="Project Description & Key Contributions..." rows="3"></textarea>
+                        <button type="submit" class="primary-btn">Add Project</button>
+                    </form>
+                </div>
+                <div class="panel">
+                    <h3>My Projects</h3>
+                    <div id="projects-list" class="cards-list"></div>
+                </div>
+            </div>
+
+            <!-- Subtab: Experience -->
+            <div id="subtab-experience" class="subtab-content" style="display: none;">
+                <div class="panel">
+                    <h3>Add Work Experience</h3>
+                    <form id="form-add-exp" class="vertical-form">
+                        <div class="form-row">
+                            <input type="text" id="exp-company" placeholder="Company Name" required>
+                            <input type="text" id="exp-role" placeholder="Job Title / Role" required>
+                        </div>
+                        <div class="form-row">
+                            <input type="text" id="exp-start" placeholder="Start Date (e.g. June 2023)">
+                            <input type="text" id="exp-end" placeholder="End Date (e.g. Present)">
+                        </div>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="exp-current"> Currently Working Here
+                        </label>
+                        <textarea id="exp-desc" placeholder="Responsibilities & Impact..." rows="3"></textarea>
+                        <button type="submit" class="primary-btn">Add Experience</button>
+                    </form>
+                </div>
+                <div class="panel">
+                    <h3>Work History</h3>
+                    <div id="experience-list" class="cards-list"></div>
+                </div>
+            </div>
+
+            <!-- Subtab: Education -->
+            <div id="subtab-education" class="subtab-content" style="display: none;">
+                <div class="panel">
+                    <h3>Add Education</h3>
+                    <form id="form-add-edu" class="vertical-form">
+                        <div class="form-row">
+                            <input type="text" id="edu-institution" placeholder="Institution / University" required>
+                            <input type="text" id="edu-degree" placeholder="Degree (e.g. B.Tech, B.S.)" required>
+                        </div>
+                        <div class="form-row">
+                            <input type="text" id="edu-field" placeholder="Field of Study (e.g. Computer Science)">
+                            <input type="text" id="edu-gpa" placeholder="GPA / Marks (e.g. 3.8 / 4.0)">
+                        </div>
+                        <div class="form-row">
+                            <input type="text" id="edu-start" placeholder="Start Year (e.g. 2021)">
+                            <input type="text" id="edu-end" placeholder="End Year (e.g. 2025)">
+                        </div>
+                        <button type="submit" class="primary-btn">Add Education</button>
+                    </form>
+                </div>
+                <div class="panel">
+                    <h3>Education History</h3>
+                    <div id="education-list" class="cards-list"></div>
+                </div>
+            </div>
+
+            <!-- Subtab: Achievements -->
+            <div id="subtab-achievements" class="subtab-content" style="display: none;">
+                <div class="panel">
+                    <h3>Add Achievement</h3>
+                    <form id="form-add-achievement" class="vertical-form">
+                        <input type="text" id="ach-title" placeholder="Achievement / Award Title" required>
+                        <input type="text" id="ach-date" placeholder="Date (e.g. Nov 2024)">
+                        <textarea id="ach-desc" placeholder="Details about the award, competition, or recognition..." rows="2"></textarea>
+                        <button type="submit" class="primary-btn">Add Achievement</button>
+                    </form>
+                </div>
+                <div class="panel">
+                    <h3>Achievements & Certifications</h3>
+                    <div id="achievements-list" class="cards-list"></div>
+                </div>
+            </div>
+
+            <!-- Subtab: Templates -->
+            <div id="subtab-templates" class="subtab-content" style="display: none;">
+                <div class="panel">
+                    <h3>Add Resume Template</h3>
+                    <form id="form-add-template" class="vertical-form">
+                        <input type="text" id="tpl-name" placeholder="Template Name (e.g. Modern Software Engineer)" required>
+                        <textarea id="tpl-content" placeholder="Template structure with {{placeholders}} or raw layout formatting..." rows="5" required></textarea>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="tpl-default"> Set as Default Template
+                        </label>
+                        <button type="submit" class="primary-btn">Add Template</button>
+                    </form>
+                </div>
+                <div class="panel">
+                    <h3>My Resume Templates</h3>
+                    <div id="templates-list" class="cards-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════ TAB 3: AI RESUME BUILDER ════════════════════ -->
+        <section id="tab-builder" class="tab-content" style="display: none;">
+            <h2 class="section-title">AI-Powered Resume Personalization</h2>
+            <p class="section-subtitle">Provide a Target Job Description or URL. Reliefer's LLM engine restructures your real qualifications to emphasize relevant skills and ATS keywords.</p>
+
+            <div class="builder-layout">
+                <div class="panel builder-input-panel">
+                    <h3>Target Job Input</h3>
+                    <form id="form-generate-resume" class="vertical-form">
+                        <div class="form-group">
+                            <label>Target Job Title (Optional)</label>
+                            <input type="text" id="gen-job-title" placeholder="e.g. Full Stack Developer">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Paste Job Description (JD)</label>
+                            <textarea id="gen-job-desc" placeholder="Paste full job requirements, qualifications, and role description here..." rows="6"></textarea>
+                        </div>
+
+                        <div class="divider-text">OR</div>
+
+                        <div class="form-group">
+                            <label>Provide Job Posting URL</label>
+                            <input type="url" id="gen-job-url" placeholder="https://example.com/careers/job/12345">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Select Template</label>
+                            <select id="gen-template-select">
+                                <option value="">Use Standard ATS Layout</option>
+                            </select>
+                        </div>
+
+                        <div class="btn-group">
+                            <button type="button" id="btn-analyze-jd" class="secondary-btn"><i data-lucide="search"></i> Analyze Keywords</button>
+                            <button type="submit" id="btn-generate-resume" class="primary-btn"><i data-lucide="wand-2"></i> Personalize Resume with AI</button>
+                        </div>
+                    </form>
+
+                    <div id="keywords-container" class="keywords-box" style="display: none;">
+                        <h4>Extracted ATS Keywords:</h4>
+                        <div id="keywords-tags" class="tags-flex"></div>
+                    </div>
+                </div>
+
+                <div class="panel builder-output-panel">
+                    <div class="panel-header">
+                        <h3>Generated Resume Output</h3>
+                        <div class="btn-group-sm">
+                            <button id="btn-toggle-view" class="secondary-btn-sm" style="display: none;" onclick="toggleResumeViewMode()"><i data-lucide="code"></i> Raw Code</button>
+                            <button id="btn-share-resume" class="secondary-btn-sm" style="display: none;" onclick="shareResumeLink()"><i data-lucide="share-2"></i> Share Link</button>
+                            <button id="btn-export-txt" class="secondary-btn-sm" style="display: none;" onclick="exportResumeTXT()"><i data-lucide="file-text"></i> TXT</button>
+                            <button id="btn-export-md" class="secondary-btn-sm" style="display: none;" onclick="exportResumeMD()"><i data-lucide="code"></i> MD</button>
+                            <button id="btn-copy-resume" class="secondary-btn-sm" style="display: none;"><i data-lucide="copy"></i> Copy</button>
+                            <button id="btn-regenerate-resume" class="secondary-btn-sm" style="display: none;" onclick="document.getElementById('form-generate-resume').requestSubmit()"><i data-lucide="refresh-cw"></i> Regenerate</button>
+                            <button id="btn-export-pdf" class="primary-btn-sm glow-btn" style="display: none;"><i data-lucide="download"></i> Export PDF</button>
+                        </div>
+                    </div>
+                    <div id="resume-stats-bar" class="resume-stats-bar" style="display: none; padding: 8px 12px; background: rgba(15,23,42,0.4); border-radius: var(--radius-sm); margin-bottom: 12px; font-size: 12px; color: var(--text-secondary);">
+                        <span id="stat-word-count">0 words</span> • <span id="stat-char-count">0 chars</span> • <span id="stat-ats-score" class="badge badge-success">ATS Optimized</span>
+                    </div>
+                    <div id="builder-loader" class="loader-box" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Generating customized resume via Hugging Face LLM... Please wait.</p>
+                    </div>
+                    <div id="formatted-resume-preview" class="formatted-resume-card">Submit job details on the left to generate your personalized resume preview here.</div>
+                    <pre id="resume-output-text" class="resume-preview-box" style="display: none;"></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════ TAB 4: RESUME HISTORY ════════════════════ -->
+        <section id="tab-history" class="tab-content" style="display: none;">
+            <h2 class="section-title">Resume History</h2>
+            <p class="section-subtitle">View and export previously tailored resumes generated by Reliefer.</p>
+
+            <div class="panel">
+                <div id="history-list" class="cards-list">
+                    <p class="placeholder-text">No generated resumes found yet. Tailor your first resume using the AI Resume Builder!</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════════════ TAB 5: HF API KEY SETUP ════════════════════ -->
+        <section id="tab-settings" class="tab-content" style="display: none;">
+            <h2 class="section-title">Hugging Face API Integration</h2>
+            <p class="section-subtitle">Reliefer uses Hugging Face's Inference API to generate personalized resumes. Enter your own API key below.</p>
+
+            <div class="panel narrow-panel">
+                <div class="key-status-box">
+                    <span>Current Key Status:</span>
+                    <strong id="settings-key-status" class="badge badge-warning">Not Configured</strong>
+                </div>
+
+                <form id="form-save-hf-key" class="vertical-form" style="margin-top: 20px;">
+                    <div class="form-group">
+                        <label>Hugging Face API Token (`hf_...`)</label>
+                        <input type="password" id="hf-api-key" placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required>
+                    </div>
+                    <button type="submit" class="primary-btn"><i data-lucide="save"></i> Save API Key</button>
+                </form>
+
+                <div class="info-callout">
+                    💡 <strong>How to get your free key:</strong>
+                    <ol style="margin-left: 20px; margin-top: 8px; font-size: 13px; color: #94a3b8;">
+                        <li>Create a free account on <a href="https://huggingface.co" target="_blank" style="color: #10b981;">HuggingFace.co</a></li>
+                        <li>Go to <strong>Settings -> Access Tokens</strong></li>
+                        <li>Create a new token with <em>Read</em> or <em>Fine-grained</em> permission and paste it here.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <div class="mobile-bottom-nav">
+        <a href="#" class="bottom-nav-item active" data-tab="overview" onclick="switchTab('overview')"><i data-lucide="home"></i><span>Overview</span></a>
+        <a href="#" class="bottom-nav-item" data-tab="profile" onclick="switchTab('profile')"><i data-lucide="user"></i><span>Profile</span></a>
+        <a href="#" class="bottom-nav-item" data-tab="builder" onclick="switchTab('builder')"><i data-lucide="wand-2"></i><span>Builder</span></a>
+        <a href="#" class="bottom-nav-item" data-tab="history" onclick="switchTab('history')"><i data-lucide="history"></i><span>History</span></a>
+        <a href="#" class="bottom-nav-item" data-tab="settings" onclick="switchTab('settings')"><i data-lucide="key"></i><span>Key</span></a>
+    </div>
+
+    <!-- Modal for Resume Viewing -->
+    <div id="modal-resume-view" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-resume-title">Resume Preview</h3>
+                <button class="close-btn" onclick="closeModal()"><i data-lucide="x"></i></button>
+            </div>
+            <pre id="modal-resume-body" class="modal-body-preview"></pre>
+            <div class="modal-footer">
+                <button id="modal-download-pdf-btn" class="primary-btn"><i data-lucide="download"></i> Export PDF</button>
+                <button class="secondary-btn" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Reviewing Extracted Resume Profile -->
+    <div id="modal-resume-review" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3><i data-lucide="sparkles" style="color: #10b981;"></i> Extracted Resume Profile</h3>
+                <button class="close-btn" onclick="closeResumeReviewModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div style="padding: 24px; max-height: 70vh; overflow-y: auto;">
+                <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px;">Review the extracted sections below before importing them into your Master Profile.</p>
+                
+                <div class="review-section">
+                    <h4><i data-lucide="zap"></i> Extracted Skills (<span id="rev-skills-count">0</span>)</h4>
+                    <div id="rev-skills-list" class="review-chip-list"></div>
+                </div>
+
+                <div class="review-section">
+                    <h4><i data-lucide="briefcase"></i> Work Experience (<span id="rev-exp-count">0</span>)</h4>
+                    <div id="rev-exp-list"></div>
+                </div>
+
+                <div class="review-section">
+                    <h4><i data-lucide="graduation-cap"></i> Education (<span id="rev-edu-count">0</span>)</h4>
+                    <div id="rev-edu-list"></div>
+                </div>
+
+                <div class="review-section">
+                    <h4><i data-lucide="code"></i> Projects (<span id="rev-proj-count">0</span>)</h4>
+                    <div id="rev-proj-list"></div>
+                </div>
+
+                <div class="review-section">
+                    <h4><i data-lucide="award"></i> Achievements & Certifications (<span id="rev-ach-count">0</span>)</h4>
+                    <div id="rev-ach-list"></div>
+                </div>
+
+                <div class="review-section">
+                    <h4><i data-lucide="file-text"></i> Other Uncategorized Information (<span id="rev-other-count">0</span>)</h4>
+                    <div id="rev-other-list"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="secondary-btn" onclick="closeResumeReviewModal()">Cancel</button>
+                <button type="button" class="primary-btn" id="btn-confirm-import" onclick="confirmImportParsedResume()"><i data-lucide="check-circle"></i> Import to Master Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Editing Profile Items -->
+    <div id="modal-edit-item" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="edit-modal-title">Edit Profile Item</h3>
+                <button class="close-btn" onclick="closeEditModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div style="padding: 24px;">
+                <form id="form-edit-item" class="vertical-form">
+                    <div id="edit-modal-fields" class="vertical-form"></div>
+                    <div class="modal-footer" style="padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 16px;">
+                        <button type="button" class="secondary-btn" onclick="closeEditModal()">Cancel</button>
+                        <button type="submit" class="primary-btn">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════ FIRST-TIME ONBOARDING WIZARD OVERLAY (PHASE 4) ════════════════════ -->
+    <div id="onboarding-overlay" class="onboarding-overlay" style="display: none;">
+        <div class="onboarding-card">
+            <!-- Stepper Progress Header -->
+            <div class="onboarding-stepper">
+                <div class="stepper-line"></div>
+                <div id="ob-progress-bar" class="stepper-progress" style="width: 0%;"></div>
+                
+                <div class="onboarding-step-item active" id="ob-step-indicator-1">
+                    <div class="step-number">1</div>
+                    <div class="step-label">Upload</div>
+                </div>
+                <div class="onboarding-step-item" id="ob-step-indicator-2">
+                    <div class="step-number">2</div>
+                    <div class="step-label">Connect</div>
+                </div>
+                <div class="onboarding-step-item" id="ob-step-indicator-3">
+                    <div class="step-number">3</div>
+                    <div class="step-label">AI Key</div>
+                </div>
+                <div class="onboarding-step-item" id="ob-step-indicator-4">
+                    <div class="step-number">4</div>
+                    <div class="step-label">Ready</div>
+                </div>
+            </div>
+
+            <!-- Step 1: Upload Existing Resume -->
+            <div id="ob-step-1" class="onboarding-step-body">
+                <h2><i data-lucide="sparkles" style="color: #10b981;"></i> Welcome to Reliefer!</h2>
+                <p>Let's set up your profile in under 60 seconds. Upload your existing resume (PDF / DOCX) or paste text to automatically extract your skills, work history, and projects.</p>
+
+                <div class="dropzone-card" onclick="triggerObFileInput()" style="margin-bottom: 0;">
+                    <div class="dropzone-icon"><i data-lucide="file-up" style="width: 40px; height: 40px;"></i></div>
+                    <div class="dropzone-title">Upload Existing Resume (PDF / DOCX)</div>
+                    <div class="dropzone-subtitle">Instant AI parsing & profile auto-fill</div>
+                    <button type="button" class="primary-btn-sm" onclick="event.stopPropagation(); triggerObFileInput();"><i data-lucide="file-text"></i> Select Resume File</button>
+                    <input type="file" id="ob-resume-file-input" accept=".pdf,.docx,.doc,.txt" style="display: none;" onchange="handleFileUpload(this.files)">
+                </div>
+            </div>
+
+            <!-- Step 2: Connect GitHub / LinkedIn -->
+            <div id="ob-step-2" class="onboarding-step-body" style="display: none;">
+                <h2><i data-lucide="link-2" style="color: #06b6d4;"></i> Connect External Profiles</h2>
+                <p>Import your public repositories from GitHub or job headline from LinkedIn to enrich your resume profile.</p>
+
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="ob-github-input" placeholder="GitHub username (e.g. torvalds)" style="flex: 1;">
+                        <button type="button" class="secondary-btn-sm" onclick="importFromGitHubOnboarding()"><i data-lucide="github"></i> Fetch Repos</button>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="url" id="ob-linkedin-input" placeholder="https://linkedin.com/in/username" style="flex: 1;">
+                        <button type="button" class="secondary-btn-sm" onclick="importFromLinkedInOnboarding()"><i data-lucide="linkedin"></i> Fetch Profile</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: AI Model Key -->
+            <div id="ob-step-3" class="onboarding-step-body" style="display: none;">
+                <h2><i data-lucide="key" style="color: #f59e0b;"></i> Configure AI Key</h2>
+                <p>Paste your free Hugging Face API key to enable tailored AI resume generation. You can also configure this later in settings.</p>
+
+                <div class="form-group">
+                    <label>Hugging Face API Token (`hf_...`)</label>
+                    <input type="password" id="ob-hf-key-input" placeholder="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                </div>
+                <div style="margin-top: 10px;">
+                    <button type="button" class="primary-btn-sm" onclick="saveHuggingFaceKeyFromOnboarding()"><i data-lucide="save"></i> Save API Key</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Ready -->
+            <div id="ob-step-4" class="onboarding-step-body" style="display: none;">
+                <h2><i data-lucide="check-circle-2" style="color: #10b981;"></i> You're All Set!</h2>
+                <p>Your profile is configured and ready for AI resume personalization. Click below to start tailoring your first resume!</p>
+                <div style="text-align: center; padding: 20px 0;">
+                    <i data-lucide="rocket" style="width: 56px; height: 56px; color: #10b981;"></i>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="onboarding-actions">
+                <button type="button" id="ob-btn-back" class="secondary-btn" onclick="prevOnboardingStep()" style="display: none;">Back</button>
+                <button type="button" id="ob-btn-skip" class="secondary-btn" onclick="skipOnboarding()">Skip Onboarding</button>
+                <button type="button" id="ob-btn-next" class="primary-btn" onclick="nextOnboardingStep()">Next Step <i data-lucide="arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./dashboard.js"></script>
+</body>
+</html>
