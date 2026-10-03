@@ -1726,23 +1726,25 @@ async function importFromGitHub() {
 async function importFromLinkedIn() {
     const input = document.getElementById("linkedin-url-input");
     if (!input || !input.value.trim()) {
-        showToast("Please enter a LinkedIn profile URL.", "warning");
+        showToast("Please enter a LinkedIn profile URL or paste text.", "warning");
         return;
     }
 
-    const url = input.value.trim();
-    showToast("Attempting to import LinkedIn profile data...", "info");
+    const val = input.value.trim();
+    showToast("Extracting LinkedIn profile data...", "info");
 
     try {
         const res = await fetchWithAuth("/import/linkedin", {
             method: "POST",
-            body: { linkedin_url: url }
+            body: { linkedin_url: val }
         });
 
         if (res.ok) {
             const data = await res.json();
-            if (data.warning) {
-                showToast(data.warning, "warning");
+            if (data.can_paste || (data.warning && (data.skills || []).length === 0)) {
+                showToast(data.warning || "LinkedIn restricted direct web access. You can paste profile text below.", "warning");
+                const pasteContainer = document.getElementById("linkedin-paste-container");
+                if (pasteContainer) pasteContainer.style.display = "block";
             } else {
                 showToast("LinkedIn profile data extracted!", "success");
             }
@@ -1754,6 +1756,36 @@ async function importFromLinkedIn() {
     } catch (err) {
         console.error("LinkedIn import error:", err);
         showToast("Network error fetching LinkedIn profile.", "error");
+    }
+}
+
+async function importFromLinkedInText() {
+    const textEl = document.getElementById("linkedin-paste-text");
+    if (!textEl || !textEl.value.trim()) {
+        showToast("Please paste your LinkedIn profile text.", "warning");
+        return;
+    }
+
+    const textVal = textEl.value.trim();
+    showToast("Extracting profile sections from text...", "info");
+
+    try {
+        const res = await fetchWithAuth("/import/linkedin", {
+            method: "POST",
+            body: { linkedin_url: textVal }
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            showToast("Profile data extracted from text!", "success");
+            openResumeReviewModal(data);
+        } else {
+            const err = await res.json();
+            showToast(err.detail || "Failed to parse text.", "error");
+        }
+    } catch (err) {
+        console.error("LinkedIn text import error:", err);
+        showToast("Failed to process text.", "error");
     }
 }
 

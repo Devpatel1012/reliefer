@@ -98,7 +98,8 @@ SECTION_HEADER_PATTERNS = {
         re.IGNORECASE
     ),
     "achievements": re.compile(
-        r"^(achievements?|awards?|honors?|certifications?|accomplishments?|"
+        r"^(achievements?|awards?|honors?|certifications?|licenses?\s*(&|and|\+)?\s*certifications?|"
+        r"certifications?\s*(&|and|\+)?\s*licenses?|accomplishments?|"
         r"publications?|research\s+publications?|certifications?\s*(&|and|\+)\s*achievements?|"
         r"awards?\s*(&|and|\+)\s*certifications?)",
         re.IGNORECASE
@@ -394,6 +395,8 @@ def _parse_projects(proj_lines: list[str]) -> list[dict[str, Any]]:
     projects_list = []
     current_proj = None
 
+    date_pattern = r"^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{4})\b"
+
     for line in proj_lines:
         line_s = line.strip()
         if not line_s:
@@ -401,6 +404,12 @@ def _parse_projects(proj_lines: list[str]) -> list[dict[str, Any]]:
 
         is_bullet = bool(re.match(r"^[•\-\*►▪▸◦◉●]\s*", line_s))
         clean_l = _clean_text(line_s)
+
+        # Check if line is purely date or date range (e.g., "Mar 2026", "Jan 2026 - Mar 2026", "2024 - 2027")
+        if re.match(date_pattern, clean_l, re.IGNORECASE) and len(clean_l) <= 30:
+            if current_proj:
+                current_proj["description"] = (current_proj["description"] + " (" + clean_l + ")").strip()
+                continue
 
         if ":" in clean_l:
             parts = clean_l.split(":", 1)
@@ -417,7 +426,9 @@ def _parse_projects(proj_lines: list[str]) -> list[dict[str, Any]]:
                 }
                 continue
 
-        if not is_bullet and len(clean_l) <= 60 and not current_proj:
+        if not is_bullet and 2 <= len(clean_l) <= 90:
+            if current_proj and (current_proj["description"] or len(current_proj["title"]) > 0):
+                projects_list.append(current_proj)
             current_proj = {
                 "title": clean_l[:100],
                 "description": "",
@@ -439,47 +450,37 @@ def _parse_projects(proj_lines: list[str]) -> list[dict[str, Any]]:
 
 
 def _parse_achievements(achieve_lines: list[str]) -> list[dict[str, Any]]:
-    # Join bullet points
-    merged_lines = []
+    achievements = []
+    date_pattern = r"^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{4})\b"
+
     for line in achieve_lines:
         line_clean = _clean_text(line)
-        if not line_clean:
+        if not line_clean or len(line_clean) < 3:
             continue
-        is_bullet = bool(re.match(r"^[•\-\*►▪▸◦◉●]\s*", line.strip()))
-        if is_bullet or not merged_lines:
-            merged_lines.append(line_clean)
-        else:
-            merged_lines[-1] += " " + line_clean
+        
+        # Check if line is purely date string
+        year_m = re.search(r"\b(19|20)\d{2}\b", line_clean)
+        year_str = year_m.group(0) if year_m else ""
 
-    achievements = []
-    for line_clean in merged_lines:
-        if ", " in line_clean and (" — " in line_clean or " - " in line_clean) and len(line_clean) < 150:
-            # Maybe it's a list of certifications on one line
-            sub_items = line_clean.split(",")
-        else:
-            sub_items = [line_clean]
-
-        for item in sub_items:
-            item_s = item.strip()
-            if not item_s or len(item_s) < 4:
+        if re.match(date_pattern, line_clean, re.IGNORECASE) and len(line_clean) <= 30:
+            if achievements:
+                if not achievements[-1].get("date") and year_str:
+                    achievements[-1]["date"] = year_str
+                achievements[-1]["description"] = (achievements[-1]["description"] + " (" + line_clean + ")").strip()
                 continue
 
-            year_m = re.search(r"\b(19|20)\d{2}\b", item_s)
-            year_str = year_m.group(0) if year_m else ""
-
-            if " — " in item_s or " - " in item_s:
-                parts = re.split(r"\s*[—\-]\s*", item_s, maxsplit=1)
-                title = parts[0].strip()
-                desc = parts[1].strip() if len(parts) > 1 else title
-            else:
-                title = item_s[:80]
-                desc = item_s
-
-            achievements.append({
-                "title": title[:100],
-                "description": desc[:400],
-                "date": year_str
-            })
+        if " — " in line_clean or " - " in line_clean:
+            parts = re.split(r"\s*[—\-]\s*", line_clean, maxsplit=1)
+            title = parts[0].strip()
+            desc = parts[1].strip() if len(parts) > 1 else title
+        else:
+            title = line_clean[:80]
+            desc = line_clean
+        achievements.append({
+            "title": title[:100],
+            "description": desc[:400],
+            "date": year_str
+        })
     return achievements[:10]
 
 

@@ -397,12 +397,41 @@ def scrape_github_profile(username_or_url: str) -> dict[str, Any]:
 
 
 def scrape_linkedin_profile(url_or_username: str) -> dict[str, Any]:
-    """Attempt to scrape public LinkedIn profile metadata.
-    Includes graceful handling for LinkedIn anti-bot blocks.
+    """Scrape public LinkedIn profile data or parse raw profile text.
+    Extracts Skills, Experience, Education, Projects, and Certifications.
     """
     from bs4 import BeautifulSoup
+    from resume_parser import parse_resume_text_to_json
 
     raw_input = url_or_username.strip()
+    if not raw_input:
+        return {
+            "skills": [],
+            "experience": [],
+            "education": [],
+            "projects": [],
+            "achievements": [],
+            "warning": "No LinkedIn profile URL or text provided.",
+        }
+
+    # If raw input contains multiple lines or section titles (Education, Projects, Certifications, etc.),
+    # parse it directly as a raw profile text block.
+    if "\n" in raw_input or any(kw in raw_input for kw in ["Education", "Projects", "Certifications", "Licenses", "Skills", "Experience"]):
+        parsed = parse_resume_text_to_json(raw_input)
+        return {
+            "skills": parsed.get("skills", []),
+            "experience": parsed.get("experience", []),
+            "education": parsed.get("education", []),
+            "projects": parsed.get("projects", []),
+            "achievements": parsed.get("achievements", []),
+            "profile_info": {
+                "name": "LinkedIn User Profile",
+                "headline": "Parsed Profile Data",
+                "url": "",
+            },
+        }
+
+    # Otherwise treat as URL or username
     if not raw_input.startswith("http"):
         if "linkedin.com/in/" in raw_input:
             target_url = f"https://{raw_input}"
@@ -412,8 +441,18 @@ def scrape_linkedin_profile(url_or_username: str) -> dict[str, Any]:
     else:
         target_url = raw_input
 
+    browser_headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
     try:
-        resp = requests.get(target_url, headers=HEADERS, timeout=8)
+        resp = requests.get(target_url, headers=browser_headers, timeout=8)
         if resp.status_code != 200:
             logger.warning(f"LinkedIn returned HTTP {resp.status_code} for {target_url}")
             return {
@@ -421,45 +460,57 @@ def scrape_linkedin_profile(url_or_username: str) -> dict[str, Any]:
                 "experience": [],
                 "education": [],
                 "projects": [],
+                "achievements": [],
                 "warning": (
                     f"LinkedIn restricts direct web scraping (HTTP {resp.status_code}). "
-                    "Please use 'Import Resume' or GitHub import for instant profile population."
+                    "Please paste your LinkedIn profile text or import your resume below to populate all sections instantly!"
                 ),
+                "can_paste": True,
             }
 
-        soup = BeautifulSoup(resp.text, "lxml")
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Collect page text from OpenGraph, JSON-LD, and meta tags
+        extracted_text_blocks = []
+
         og_title = soup.find("meta", property="og:title")
+        if og_title and og_title.get("content"):
+            extracted_text_blocks.append(og_title["content"])
+
         og_desc = soup.find("meta", property="og:description")
+        if og_desc and og_desc.get("content"):
+            extracted_text_blocks.append(og_desc["content"])
+
+        # Parse JSON-LD structured data if available
+        ld_scripts = soup.find_all("script", type="application/ld+json")
+        for sc in ld_scripts:
+            if sc.string:
+                extracted_text_blocks.append(sc.string)
+
+        # Collect text from standard page elements
+        for tag in soup.find_all(["p", "span", "h1", "h2", "h3", "li"]):
+            txt = tag.get_text().strip()
+            if len(txt) > 10:
+                extracted_text_blocks.append(txt)
+
+        aggregated_text = "\n".join(extracted_text_blocks)
+        parsed = parse_resume_text_to_json(aggregated_text)
 
         name = ""
-        headline = ""
         if og_title and og_title.get("content"):
             title_text = og_title["content"]
             name = title_text.split("-")[0].strip() if "-" in title_text else title_text
 
-        if og_desc and og_desc.get("content"):
-            headline = og_desc["content"]
-
-        skills = []
-        experience = []
-
-        if headline:
-            words = [w.strip() for w in re.split(r"[,|•·]", headline) if len(w.strip()) > 2]
-            skills = words[:6]
-            experience.append({
-                "role": words[0] if words else "Professional",
-                "company": "LinkedIn Member Profile",
-                "dates": "Present",
-                "description": headline,
-            })
+        headline = og_desc["content"] if og_desc and og_desc.get("content") else ""
 
         return {
-            "skills": skills,
-            "experience": experience,
-            "education": [],
-            "projects": [],
+            "skills": parsed.get("skills", []),
+            "experience": parsed.get("experience", []),
+            "education": parsed.get("education", []),
+            "projects": parsed.get("projects", []),
+            "achievements": parsed.get("achievements", []),
             "profile_info": {
-                "name": name,
+                "name": name or "LinkedIn User",
                 "headline": headline,
                 "url": target_url,
             },
@@ -472,5 +523,7 @@ def scrape_linkedin_profile(url_or_username: str) -> dict[str, Any]:
             "experience": [],
             "education": [],
             "projects": [],
-            "warning": f"Unable to reach LinkedIn profile. Error: {e!s}",
+            "achievements": [],
+            "warning": f"Unable to fetch profile automatically. Error: {e!s}. You can paste your profile text directly to extract all sections.",
+            "can_paste": True,
         }

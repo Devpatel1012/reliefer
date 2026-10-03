@@ -205,10 +205,14 @@
                             <i data-lucide="linkedin" style="width: 22px; height: 22px; color: #06b6d4;"></i>
                             <h4 style="font-size: 15px; font-weight: 600; color: #f1f5f9;">Import LinkedIn Profile</h4>
                         </div>
-                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">Import headline, current role, and skills from public profile URL.</p>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="url" id="linkedin-url-input" placeholder="https://linkedin.com/in/username" style="flex: 1; padding: 8px 12px; font-size: 13px;">
+                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">Extract Education, Projects, Certifications, and Skills automatically from your profile URL or text.</p>
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <input type="text" id="linkedin-url-input" placeholder="https://linkedin.com/in/username or paste text..." style="flex: 1; padding: 8px 12px; font-size: 13px;">
                             <button type="button" class="primary-btn-sm" onclick="importFromLinkedIn()"><i data-lucide="download"></i> Import</button>
+                        </div>
+                        <div id="linkedin-paste-container" style="display: none; margin-top: 10px;">
+                            <textarea id="linkedin-paste-text" rows="4" placeholder="Paste your raw LinkedIn profile text here (Education, Projects, Certifications, Skills)..." style="width: 100%; font-size: 12px; padding: 8px; border-radius: 6px; background: rgba(15,23,42,0.8); color: #f8fafc; border: 1px solid rgba(255,255,255,0.1);"></textarea>
+                            <button type="button" class="secondary-btn-sm" style="margin-top: 6px;" onclick="importFromLinkedInText()"><i data-lucide="sparkles"></i> Extract All Sections</button>
                         </div>
                     </div>
                 </div>
