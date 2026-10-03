@@ -13,15 +13,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Trigger Railway Deployment Hook
-        if: ${{ secrets.RAILWAY_DEPLOY_HOOK != null && secrets.RAILWAY_DEPLOY_HOOK != '' }}
+      - name: Check Deployment Webhooks
         run: |
-          curl -s -X POST "${{ secrets.RAILWAY_DEPLOY_HOOK }}"
+          echo "Checking for deployment webhooks (Railway / Render)..."
+
+      - name: Trigger Railway Deployment Hook
+        if: ${{ secrets.RAILWAY_DEPLOY_HOOK != '' }}
+        env:
+          RAILWAY_DEPLOY_HOOK: ${{ secrets.RAILWAY_DEPLOY_HOOK }}
+        run: |
+          curl -s -X POST "$RAILWAY_DEPLOY_HOOK"
 
       - name: Trigger Render Deploy Hook
-        if: ${{ secrets.RENDER_DEPLOY_HOOK != null && secrets.RENDER_DEPLOY_HOOK != '' }}
+        if: ${{ secrets.RENDER_DEPLOY_HOOK != '' }}
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
         run: |
-          curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
-
-      - name: Deployment Status
-        run: echo "Deployment workflow completed cleanly."
+          curl -s -X POST "$RENDER_DEPLOY_HOOK"
