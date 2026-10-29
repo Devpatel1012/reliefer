@@ -974,18 +974,26 @@ def call_huggingface(api_key: str, prompt: str, model: str | None = None) -> str
 
     candidates = scrape_and_classify_hf_models()
 
-    attempts = []
+    # Build attempt list: user-specified model first, then scraped candidates.
+    # Each attempt uses ONLY the provider-specific URL (no redundant URL variants).
+    attempts: list[dict[str, Any]] = []
+    seen_keys: set[tuple] = set()
+
+    def _add(prov: str | None, mid: str) -> None:
+        k = (prov, mid)
+        if k not in seen_keys:
+            seen_keys.add(k)
+            attempts.append({"provider": prov, "model_id": mid})
+
     if model:
-        attempts.append({"provider": "hf-inference", "model_id": model})
-        attempts.append({"provider": None, "model_id": model})
+        _add(None, model)  # auto-route first
 
     for cand in candidates:
-        attempts.append(cand)
-        attempts.append({"provider": None, "model_id": cand["model_id"]})
+        _add(cand.get("provider"), cand.get("model_id", ""))
 
-    seen_attempts = set()
-    # Track whether every failure was a "permissions" error (HF Inference Provider access issue)
+    # Permanent-failure trackers
     _permissions_fail_count = 0
+    _credits_exhausted = False
     _total_attempts = 0
 
     for item in attempts:
@@ -994,74 +1002,105 @@ def call_huggingface(api_key: str, prompt: str, model: str | None = None) -> str
         if not m:
             continue
 
-        key = (prov, m)
-        if key in seen_attempts:
-            continue
-        seen_attempts.add(key)
-
-        urls = []
+        # Build a single URL for this attempt
         if prov:
-            urls.append(f"https://router.huggingface.co/{prov}/v1/chat/completions")
-        urls.append("https://router.huggingface.co/v1/chat/completions")
-        urls.append("https://router.huggingface.co/hf-inference/v1/chat/completions")
+            chat_url = f"https://router.huggingface.co/{prov}/v1/chat/completions"
+        else:
+            chat_url = "https://router.huggingface.co/v1/chat/completions"
 
-        for chat_url in urls:
-            logger.info("Attempting resume generation via URL: %s | Model: %s", chat_url, m)
-            payload = {
-                "model": m,
-                "messages": [
-                    {"role": "system", "content": system_message},
-                    {"role": "user", "content": prompt},
-                ],
-                "max_tokens": 3000,
-                "temperature": 0.2,
-            }
-            try:
-                _total_attempts += 1
-                resp = requests.post(chat_url, headers=headers, json=payload, timeout=25)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if isinstance(data, dict) and "choices" in data and len(data["choices"]) > 0:
-                        content = data["choices"][0].get("message", {}).get("content")
-                        if content and content.strip():
-                            logger.info("Resume generated successfully using model %s via %s", m, chat_url)
-                            return _format_resume_structure(_post_process_resume(content.strip()))
-                elif resp.status_code in (401, 403):
-                    resp_text_lower = resp.text.lower()
-                    # "sufficient permissions" / "Inference Providers" → HF token lacks provider access.
-                    # This is a permanent account-level restriction — retrying more URL variants
-                    # for this model will always fail. Skip to the next model immediately.
-                    if "sufficient permissions" in resp_text_lower or "inference provider" in resp_text_lower:
-                        _permissions_fail_count += 1
-                        logger.warning(
-                            "Model %s via %s: HF Inference Provider access denied (token lacks permissions). "
-                            "Skipping remaining URL variants for this model.",
-                            m, chat_url,
-                        )
-                        break  # skip remaining URL variants for this model
-                    elif "invalid" in resp_text_lower or "token" in resp_text_lower:
-                        raise HTTPException(
-                            status_code=401,
-                            detail=(
-                                "Invalid Hugging Face API key. Please check your HF token "
-                                "in settings (must be a valid token from huggingface.co/settings/tokens)."
-                            ),
-                        )
-                    else:
-                        logger.warning("Model %s via %s returned HTTP %s: %s", m, chat_url, resp.status_code, resp.text[:200])
+        logger.info("Attempting resume generation via URL: %s | Model: %s", chat_url, m)
+        payload = {
+            "model": m,
+            "messages": [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt},
+            ],
+            "max_tokens": 3000,
+            "temperature": 0.2,
+        }
+        try:
+            _total_attempts += 1
+            resp = requests.post(chat_url, headers=headers, json=payload, timeout=60)
+
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, dict) and "choices" in data and len(data["choices"]) > 0:
+                    content = data["choices"][0].get("message", {}).get("content")
+                    if content and content.strip():
+                        logger.info("Resume generated successfully using model %s via %s", m, chat_url)
+                        return _format_resume_structure(_post_process_resume(content.strip()))
+
+            resp_text_lower = resp.text.lower()
+
+            # ── HTTP 402: No remaining credits ──────────────────────────
+            # This is an account-level billing issue — every provider will
+            # return the same error. Stop immediately and inform the user.
+            if resp.status_code == 402 or "no remaining credits" in resp_text_lower:
+                _credits_exhausted = True
+                logger.error(
+                    "Model %s via %s: HTTP %s — HuggingFace credits exhausted. "
+                    "Stopping all retries.",
+                    m, chat_url, resp.status_code,
+                )
+                break  # stop trying — all providers share the same billing
+
+            # ── HTTP 400: Model not supported by provider ───────────────
+            # Stale combo — skip silently without flooding the log.
+            if resp.status_code == 400 and "not supported" in resp_text_lower:
+                logger.debug(
+                    "Model %s not supported by provider %s — skipping.", m, prov or "auto"
+                )
+                continue
+
+            # ── HTTP 401/403: Auth or permissions ───────────────────────
+            if resp.status_code in (401, 403):
+                if "sufficient permissions" in resp_text_lower or "inference provider" in resp_text_lower:
+                    _permissions_fail_count += 1
+                    logger.warning(
+                        "Model %s via %s: HF Inference Provider access denied "
+                        "(token lacks permissions). Skipping.",
+                        m, chat_url,
+                    )
+                    continue
+                elif "invalid" in resp_text_lower or ("token" in resp_text_lower and "password" in resp_text_lower):
+                    raise HTTPException(
+                        status_code=401,
+                        detail=(
+                            "Invalid Hugging Face API key. Please check your HF token "
+                            "in settings (must be a valid token from huggingface.co/settings/tokens)."
+                        ),
+                    )
                 else:
                     logger.warning("Model %s via %s returned HTTP %s: %s", m, chat_url, resp.status_code, resp.text[:200])
-            except HTTPException:
-                raise
-            except Exception as exc:
-                logger.warning("Model %s via %s raised exception: %s", m, chat_url, exc)
 
-    # If every single attempt failed with an "Inference Provider permissions" error,
-    # surface a clear, actionable message to the user instead of running the fallback silently.
-    if _permissions_fail_count > 0 and _permissions_fail_count >= len(seen_attempts):
+            # ── Other errors ────────────────────────────────────────────
+            else:
+                logger.warning("Model %s via %s returned HTTP %s: %s", m, chat_url, resp.status_code, resp.text[:200])
+
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.warning("Model %s via %s raised exception: %s", m, chat_url, exc)
+
+    # ── Post-loop: surface the right error to the user ──────────────────
+
+    if _credits_exhausted:
+        logger.error("HuggingFace credits exhausted. Raising HTTP 402 to user.")
+        raise HTTPException(
+            status_code=402,
+            detail=(
+                "Your HuggingFace account has no remaining Inference credits. "
+                "You can either:\n"
+                "• Purchase pre-paid credits at huggingface.co/pricing\n"
+                "• Subscribe to HuggingFace PRO for monthly included credits\n"
+                "• Wait for your free-tier credits to reset\n\n"
+                "Once you have credits, try generating your resume again."
+            ),
+        )
+
+    if _permissions_fail_count > 0 and _permissions_fail_count >= _total_attempts:
         logger.error(
-            "All %d model attempts failed: HF token lacks Inference Provider permissions. "
-            "Raising HTTP 403 to user.",
+            "All %d model attempts failed: HF token lacks Inference Provider permissions.",
             _permissions_fail_count,
         )
         raise HTTPException(
@@ -1074,7 +1113,7 @@ def call_huggingface(api_key: str, prompt: str, model: str | None = None) -> str
             ),
         )
 
-    # Structured fallback — all LLM calls failed for other reasons
+    # Structured fallback — all LLM calls failed for transient reasons
     logger.error("ALL HuggingFace API calls failed. Running structured fallback.")
     return generate_structured_resume_fallback(prompt)
 

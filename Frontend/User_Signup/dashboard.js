@@ -1015,8 +1015,14 @@ async function generatePersonalizedResume(e) {
         } else {
             outputBox.style.display = "block";
             outputBox.textContent = "Error: " + (data.detail || "Resume generation failed");
-            if (data.detail && data.detail.includes("Hugging Face API key")) {
+            if (res.status === 402) {
+                showToast("HuggingFace credits exhausted! Purchase credits at huggingface.co/pricing or wait for free-tier reset.", "error");
+            } else if (res.status === 403) {
+                showToast("HF token lacks Inference Provider permissions. Update your token at huggingface.co/settings/tokens.", "error");
+            } else if (data.detail && data.detail.includes("Hugging Face API key")) {
                 showToast("Hugging Face API key missing. Go to HF API Key settings to configure.", "error");
+            } else {
+                showToast(data.detail || "Resume generation failed", "error");
             }
         }
     } catch (err) {
